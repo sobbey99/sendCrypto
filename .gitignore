@@ -10,3 +10,5 @@ node_modules
 #Hardhat files
 /smart_contract/cache
 /smart_contract/artifacts
+
+/client/.env
