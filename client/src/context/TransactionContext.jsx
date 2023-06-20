@@ -38,6 +38,8 @@ export const TransactionProvider = ({ children }) => {
     localStorage.getItem("transactionCount")
   );
 
+  const [transactions, setTransactions] = useState([]);
+
   const handleChange = (e) => {
     setFormData((prevState) => {
       return {
@@ -45,6 +47,63 @@ export const TransactionProvider = ({ children }) => {
         [e.target.name]: e.target.value,
       };
     });
+  };
+
+  const convertTimestamp = (timestampBigInt) => {
+    const timestamp = BigInt(timestampBigInt); // Convert the BigInt timestamp to a string
+
+    // Convert the timestamp to a regular number
+    const timestampNumber = Number(timestamp);
+
+    // Create a new Date object using the timestamp multiplied by 1000 (to convert from seconds to milliseconds)
+    const date = new Date(timestampNumber * 1000);
+
+    // Extract the individual components (year, month, day, hour, minute, second) from the date
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1; // Months are zero-based, so add 1
+    const day = date.getDate();
+    const hour = date.getHours();
+    const minute = date.getMinutes();
+    const second = date.getSeconds();
+
+    // Convert the hour to a 12-hour format
+    const formattedHour = hour % 12 || 12; // If hour is 0, convert it to 12
+
+    // Determine if it's AM or PM
+    const amPm = hour < 12 ? "AM" : "PM";
+
+    // Create the formatted date and time string
+    const formattedDateTime = `${month}/${day}/${year}, ${formattedHour}:${minute}:${second} ${amPm}`;
+
+    return formattedDateTime;
+  };
+
+  const getAllTransactions = async () => {
+    try {
+      if (!ethereum) {
+        return alert("Please install metamask");
+      }
+      const transactionContract = await getEthereumContract();
+
+      const availableTransactions =
+        await transactionContract.getAllTransactions();
+
+      const structuredTransactions = availableTransactions.map(
+        (transaction) => ({
+          addressTo: transaction.receiver,
+          addressFrom: transaction.sender,
+          timestamp: convertTimestamp(transaction.timestamp),
+          message: transaction.message,
+          keyword: transaction.keyword,
+          amount: parseInt(transaction.amount) / 10 ** 18,
+        })
+      );
+
+      console.log({ structuredTransactions });
+      setTransactions(structuredTransactions);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   const checkIfWalletIsConnected = async () => {
@@ -60,11 +119,23 @@ export const TransactionProvider = ({ children }) => {
       if (accounts.length) {
         setConnectedAccount(accounts[0]);
 
-        //getAllTransactions();
+        getAllTransactions();
       } else {
         console.log("No accounts found");
       }
       //   console.log(accounts);
+    } catch (error) {
+      console.log(error);
+      throw new Error("No ethereum object.");
+    }
+  };
+
+  const checkIfTransactionsExist = async () => {
+    try {
+      const transactionContract = await getEthereumContract();
+      const transactionCount = await transactionContract.getTransactionCount();
+
+      window.localStorage.setItem("transactionCount", transactionCount);
     } catch (error) {
       console.log(error);
       throw new Error("No ethereum object.");
@@ -117,6 +188,8 @@ export const TransactionProvider = ({ children }) => {
       const transactionCount = await transactionContract.getTransactionCount();
 
       setTransactionCount(transactionCount.toNumber());
+
+      window.reload();
     } catch (error) {
       console.log(error);
       throw new Error("No ethereum object.");
@@ -142,6 +215,7 @@ export const TransactionProvider = ({ children }) => {
 
   useEffect(() => {
     checkIfWalletIsConnected();
+    checkIfTransactionsExist();
   }, []);
   return (
     <TransactionContext.Provider
@@ -151,6 +225,8 @@ export const TransactionProvider = ({ children }) => {
         formData,
         handleChange,
         sendTransaction,
+        transactions,
+        isLoading,
       }}
     >
       {children}
