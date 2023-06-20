@@ -1,6 +1,8 @@
 import { AiFillPlayCircle } from "react-icons/ai";
 import { SiEthereum } from "react-icons/si";
 import { BsInfoCircle } from "react-icons/bs";
+import React, { useContext } from "react";
+import { TransactionContext } from "../context/TransactionContext";
 
 import { Loader } from "./";
 
@@ -13,15 +15,35 @@ const Input = ({ placeholder, name, type, value, handleChange }) => (
     type={type}
     step="0.0001"
     value={value}
-    onChange={() => handleChange(e, name)}
+    name={name}
+    onChange={(e) => handleChange(e)}
     className="my-2 w-full rounded-sm p-2 outline-none bg-transparent text-white border-none text-sm white-glassmorphism"
   />
 );
 
 const Welcome = () => {
-  const connectWallet = () => {};
-  const handleChange = () => {};
-  const handleSubmit = () => {};
+  const {
+    connectWallet,
+    connectedAccount,
+    formData,
+    handleChange,
+    sendTransaction,
+  } = useContext(TransactionContext);
+
+  const handleSubmit = (e) => {
+    const { addressTo, amount, keyword, message } = formData;
+
+    console.log(formData);
+
+    e.preventDefault();
+
+    if (!addressTo || !amount || !keyword || !message) {
+      console.log("Not all values are passed.");
+      return;
+    }
+
+    sendTransaction();
+  };
   return (
     <div className="flex w-full justify-center items-center">
       <div className="flex mf:flex-row flex-col items-start justify-between md:p-20 py-12 px-4">
@@ -33,13 +55,17 @@ const Welcome = () => {
             Explore the crypto world. Buy and sell cryptocurrencies easily on
             Krypto.
           </p>
-          <button
-            type="button"
-            onClick={connectWallet}
-            className="flex flex-row justify-center items-center my-5 bg-[#2952e3] p-3 rounded-full cursor-pointer hover:bg-[#2546bd]"
-          >
-            <p className="text-white text-base font-semibold">Connect Wallet</p>
-          </button>
+          {!connectedAccount && (
+            <button
+              type="button"
+              onClick={connectWallet}
+              className="flex flex-row justify-center items-center my-5 bg-[#2952e3] p-3 rounded-full cursor-pointer hover:bg-[#2546bd]"
+            >
+              <p className="text-white text-base font-semibold">
+                Connect Wallet
+              </p>
+            </button>
+          )}
 
           <div className="grid sm:grid-cols-3 grid-cols-2 w-full mt-10">
             <div className={`rounded-tl-2xl ${commonStyles}`}>Realibility</div>
